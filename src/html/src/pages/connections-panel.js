@@ -1,6 +1,5 @@
 import {html, LitElement} from "lit";
 import {customElement} from "lit/decorators.js";
-import '../assets/mui.js';
 import {elrsState, saveConfig} from "../utils/state.js";
 import {_} from "../utils/libs.js";
 import {postWithFeedback} from "../utils/feedback.js";
@@ -16,6 +15,7 @@ class ConnectionsPanel extends LitElement {
     pinTxIndex = undefined
 
     createRenderRoot() {
+        this._onFormEdited = this._onFormEdited.bind(this)
         return this
     }
 
@@ -43,7 +43,7 @@ class ConnectionsPanel extends LitElement {
             <div class="connections-panel-root">
                 <div class="mui-panel mui--text-title">PWM Pin Functions</div>
                 <div class="mui-panel warning-bg connections-mobile-warning">
-                    <div class="mui--text-title" style="margin-bottom: 8px;">Rotate to landscape</div>
+                    <div class="mui--text-title connections-mobile-title">Rotate to landscape</div>
                     <p>
                         The connections panel is too wide for small screens in portrait mode. Please rotate your device to
                         landscape mode to view and edit the settings.
@@ -51,20 +51,12 @@ class ConnectionsPanel extends LitElement {
                 </div>
                 <div class="mui-panel connections-panel">
                     Set PWM output mode and failsafe positions.
-                    <form>
+                    <form @input=${this._onFormEdited} @change=${this._onFormEdited}>
                         <div class="mui-panel pwmpnl">
                             <table class="pwmtbl mui-table">
                                 <thead>
                                 <tr>
-                                    <th class="fixed-column">Output</th>
-                                    <th class="mui--text-center fixed-column">Features</th>
-                                    <th>Mode</th><th>Input</th>
-                                    <th class="mui--text-center fixed-column">Invert</th>
-                                    <th class="mui--text-center fixed-column">Stretch</th>
-                                    <th class="mui--text-center fixed-column pwmitm">Failsafe Mode</th>
-                                    <th class="mui--text-center fixed-column pwmitm">Failsafe Pos</th>
-                                    <th class="mui--text-center fixed-column pwmitm">Limit Min</th>
-                                    <th class="mui--text-center fixed-column pwmitm">Limit Max</th>
+                                    <th class="fixed-column">Output</th><th class="mui--text-center fixed-column">Features</th><th>Mode</th><th>Input</th><th class="mui--text-center fixed-column">Invert</th><th class="mui--text-center fixed-column">Stretch</th><th class="mui--text-center fixed-column pwmitm">Failsafe Mode</th><th class="mui--text-center fixed-column pwmitm">Failsafe Pos</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -73,7 +65,9 @@ class ConnectionsPanel extends LitElement {
                             </table>
                         </div>
                         <div>
-                            <button class="mui-btn mui-btn--small mui-btn--primary" @click="${this._savePwmConfig}">Save</button>
+                            <button class="mui-btn mui-btn--small mui-btn--primary"
+                                    ?disabled=${!this.checkChanged()}
+                                    @click="${this._savePwmConfig}">Save</button>
                             ${elrsState.options.customised ? html`
                                 <button class="mui-btn mui-btn--small mui-btn--danger mui--pull-right"
                                         @click="${postWithFeedback('Reset PWM Configuration', 'An error occurred resetting the configuration', '/reset?config', null)}"
@@ -91,12 +85,12 @@ class ConnectionsPanel extends LitElement {
                         </li>
                         <li><b>Mode:</b> Output frequency, 10KHz 0-100% duty cycle, binary On/Off, DShot, Serial, or I2C
                             (some options are pin dependant)
+                            <ul>
+                                <li>When enabling serial pins, be sure to select the <b>Serial Protocol</b> below and <b>UART
+                                    baud</b> on the <b><a href="#serial">Serial</a></b> page in the menu
+                                </li>
+                            </ul>
                         </li>
-                        <ul>
-                            <li>When enabling serial pins, be sure to select the <b>Serial Protocol</b> below and <b>UART
-                                baud</b> on the <b><a href="#serial">Serial</a></b> page in the menu
-                            </li>
-                        </ul>
                         <li><b>Input:</b> Input channel from the handset</li>
                         <li><b>Invert:</b> Invert input channel position</li>
                         <li><b>Stretch:</b> Stretch pulse width from mode limits to 500-2500us</li>
@@ -117,8 +111,6 @@ class ConnectionsPanel extends LitElement {
                                 <li>"Last Position" continues sending last received channel position</li>
                             </ul>
                         </li>
-                        <li><b>Limit Min:</b>Minimum value for the channel</li>
-                        <li><b>Limit Max:</b>Maximum value for the channel</li>
                     </ul>
                 </div>
             </div>
@@ -177,8 +169,6 @@ class ConnectionsPanel extends LitElement {
             const mode = (item.config >> 16) & 15; // 4 bits
             const stretch = (item.config >> 20) & 1;
             const failsafeMode = (item.config >> 22) & 3; // 2 bits
-            const limitMin = item.limits.min
-            const limitMax = item.limits.max
             const features = item.features
             const modes = ['50Hz', '60Hz', '100Hz', '160Hz', '333Hz', '400Hz', '10KHzDuty', 'On/Off']
             if (features & 16) {
@@ -211,17 +201,10 @@ class ConnectionsPanel extends LitElement {
                             'ch9 (AUX5)', 'ch10 (AUX6)', 'ch11 (AUX7)', 'ch12 (AUX8)',
                             'ch13 (AUX9)', 'ch14 (AUX10)', 'ch15 (AUX11)', 'ch16 (AUX12)'])}</td>
                 <td><div class="mui-checkbox mui--text-center"><input type="checkbox" id="pwm_${index}_inv" ?checked="${inv}"></div></td>
-                <td><div class="mui-checkbox mui--text-center"><input type="checkbox" id="pwm_${index}_stretch" ?checked="${stretch}"}></div></td>
+                <td><div class="mui-checkbox mui--text-center"><input type="checkbox" id="pwm_${index}_stretch" ?checked="${stretch}"></div></td>
                 <td>${this._enumSelectGenerate(`pwm_${index}_fsmode`, failsafeMode, ['Set Position', 'No Pulses', 'Last Position'],
                         (e) => {this._failsafeModeChange(e.target, index)})}</td>
-                <td><div class="mui-textfield compact"><input id="pwm_${index}_fs" value="${failsafe}" size="6" class="pwmitm" /></div></td>
-                <td><div class="mui-textfield compact">
-                    <input id="limit_min_${index}" type="number" value="${limitMin}" min="476" max="2523" size="6" class="pwmitm" />
-                </div></td>
-                <td><div class="mui-textfield compact">
-                    <input id="limit_max_${index}" type="number" value="${limitMax}" min="476" max="2523" size="6" class="pwmitm" />
-                </div></td>
-                </tr>
+                <td><div class="mui-textfield compact"><input id="pwm_${index}_fs" value="${failsafe}" size="6" class="pwmitm" /></div></td></tr>
             `);
             this.pinModes[index] = mode
         });
@@ -305,7 +288,11 @@ class ConnectionsPanel extends LitElement {
         }
     }
 
-    _getPwmFormData() {
+    _onFormEdited() {
+        this.requestUpdate()
+    }
+
+    _getPwmFormData(normalizeFields = false) {
         let ch = 0
         let inField
         const outData = []
@@ -319,7 +306,7 @@ class ConnectionsPanel extends LitElement {
             let failsafe = failsafeField.value
             if (failsafe > 2523) failsafe = 2523;
             if (failsafe < 476) failsafe = 476;
-            failsafeField.value = failsafe
+            if (normalizeFields) failsafeField.value = failsafe
             let failsafeMode = failsafeModeField.value
 
             const raw = (failsafeMode << 22) | (stretch << 20) | (mode << 16) | (invert << 15) | (inChannel << 11) | (failsafe - 476)
@@ -330,60 +317,16 @@ class ConnectionsPanel extends LitElement {
         return outData
     }
 
-    _pwmLimitValidate(min, max) {
-        if (min > max) {
-            return false
-        }
-        if (min < 476 || min > 2523) {
-            return false
-        }
-        if (max < 476 || max > 2523) {
-            return false
-        }
-        return true
-    }
-
-    _pwmLimitAsRaw(min, max) {
-        // Limit to 12 bits
-        min = Math.max(0, Math.min(min, 4095))
-        max = Math.max(0, Math.min(max, 4095))
-        return (min << 12) | max
-    }
-
-    _getPwmLimitsFormData() {
-        let ch = 0
-        let minField = undefined
-        let maxField = undefined
-        const outData = []
-        while (minField = _(`limit_min_${ch}`)) {
-            maxField = _(`limit_max_${ch}`)
-            outData.push({min: parseInt(minField.value), max: parseInt(maxField.value)})
-            ch++
-        }
-        return outData
-    }
-
     _savePwmConfig(e) {
         e.preventDefault();
-        const data = this._getPwmFormData()
-        const limits = this._getPwmLimitsFormData()
-        const limits_raw = limits.map(x => this._pwmLimitAsRaw(x.min, x.max))
-        saveConfig({'pwm': data, 'limits': limits_raw})
+        const data = this._getPwmFormData(true)
+        saveConfig({'pwm': data}, () => this.requestUpdate())
     }
 
     checkChanged() {
-        let data = this._getPwmFormData()
+        const data = this._getPwmFormData()
         for (let i = 0; i < data.length; i++) {
             if (elrsState.config.pwm[i].config !== data[i]) {
-                return true
-            }
-        }
-        data = this._getPwmLimitsFormData()
-        for (let i = 0; i < data.length; i++) {
-            if (
-                elrsState.config.pwm[i].limits.min !== data[i].min ||
-                elrsState.config.pwm[i].limits.max !== data[i].max
-            ) {
                 return true
             }
         }

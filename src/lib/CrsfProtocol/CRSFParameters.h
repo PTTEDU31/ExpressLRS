@@ -1,7 +1,5 @@
 #pragma once
 
-#include "targets.h"
-
 #include "crsf_protocol.h"
 
 #include <functional>
@@ -137,7 +135,6 @@ typedef std::function<void(propertiesCommon *item, int32_t arg)> parameterHandle
 uint8_t findSelectionLabel(const selectionParameter *parameter, char *outArray, uint8_t value);
 
 constexpr char STR_EMPTYSPACE[1] = {};
-constexpr char STR_US[3] = "us";
 
 #define LUASYM_ARROW_UP "\xc0"
 #define LUASYM_ARROW_DN "\xc1"
