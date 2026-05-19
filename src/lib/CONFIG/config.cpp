@@ -9,6 +9,7 @@
 
 #if defined(PLATFORM_ESP32)
 #include <mbedtls/md5.h> // for SetBindPhrase()
+#include "encryption.h"
 #endif
 
 void BindphraseConfigurable::SetBindPhrase(uint8_t *phrase, size_t phraseLen)
@@ -39,6 +40,13 @@ void BindphraseConfigurable::SetBindPhrase(uint8_t *phrase, size_t phraseLen)
 
     // UID is the first UID_LEN of the md5
     SetUID(UID_md5);
+
+#if defined(PLATFORM_ESP32)
+    // Derive AES-128 key from same bind phrase. Both TX and RX call this with the same phrase
+    // so they end up with the same key (no key transmission needed). The flag OtaEncryptionEnabled
+    // (default false) gates whether the OTA body is actually encrypted at runtime.
+    OtaEncryptionInit(phrase, phraseLen);
+#endif
 }
 
 #if defined(TARGET_TX)

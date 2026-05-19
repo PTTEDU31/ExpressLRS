@@ -35,6 +35,9 @@ void sendMAVLinkTelemetryToBackpack(uint8_t *) {}
 #include "TXModuleEndpoint.h"
 #include "TXOTAConnector.h"
 #include "TXUSBConnector.h"
+#if defined(PLATFORM_ESP32)
+#include "encryption.h"
+#endif
 
 #if defined(PLATFORM_ESP8266)
 #include <user_interface.h>
@@ -405,6 +408,11 @@ void ICACHE_RAM_ATTR GenerateSyncPacketData(OTA_Sync_s * const syncPtr)
   syncPtr->newTlmRatio = newTlmRatio - TLM_RATIO_NO_TLM;
   syncPtr->geminiMode = inGeminiMode();
   syncPtr->otaProtocol = config.GetLinkMode();
+#if defined(PLATFORM_ESP32)
+  syncPtr->cryptoMode = OtaEncryptionEnabled ? 1 : 0;
+#else
+  syncPtr->cryptoMode = 0;
+#endif
   syncPtr->UID4 = UID[4];
   syncPtr->UID5 = UID[5];
 
@@ -601,6 +609,11 @@ void ICACHE_RAM_ATTR SendRCdataToRF()
       OtaPackChannelData(&otaPkt, ChannelData, DataDlReceiver.GetCurrentConfirm());
     }
   }
+
+#if defined(PLATFORM_ESP32)
+  ///// Encrypt body before CRC so CRC covers ciphertext (no-op when disabled) /////
+  OtaCryptBody(&otaPkt);
+#endif
 
   ///// Next, Calculate the CRC and put it into the buffer /////
   OtaGeneratePacketCrc(&otaPkt);
@@ -1432,6 +1445,10 @@ void setup()
     eeprom.Begin(); // Init the eeprom
     config.SetStorageProvider(&eeprom); // Pass pointer to the Config class for access to storage
     config.Load(); // Load the stored values from eeprom
+
+#if defined(PLATFORM_ESP32)
+    OtaEncryptionLoadFromStorage();
+#endif
 
     Radio.currFreq = FHSSgetInitialFreq(); //set frequency first or an error will occur!!!
     #if defined(RADIO_SX127X)

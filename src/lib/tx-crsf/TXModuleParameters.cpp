@@ -11,6 +11,9 @@
 #include "helpers.h"
 #include "deferred.h"
 #include "msptypes.h"
+#if defined(PLATFORM_ESP32)
+#include "encryption.h"
+#endif
 
 #define STR_LUA_ALLAUX         "AUX1;AUX2;AUX3;AUX4;AUX5;AUX6;AUX7;AUX8;AUX9;AUX10"
 
@@ -164,6 +167,16 @@ static selectionParameter luaModelMatch = {
     luastrOffOn,
     modelMatchUnit
 };
+
+#if defined(PLATFORM_ESP32)
+static constexpr char encUnitNoKey[] = "No key";
+static selectionParameter luaEncryption = {
+    {"Encryption", CRSF_TEXT_SELECTION},
+    0, // value
+    luastrOffOn,
+    STR_EMPTYSPACE
+};
+#endif
 
 static commandParameter luaBind = {
     {"Bind", CRSF_COMMAND},
@@ -878,6 +891,20 @@ void TXModuleEndpoint::registerParameters()
         }
         updateModelID();
       });
+#if defined(PLATFORM_ESP32)
+      // Reflect current state into the Lua UI before registering.
+      luaEncryption.value = OtaEncryptionEnabled ? 1 : 0;
+      luaEncryption.units = OtaEncryptionKeyIsReady() ? STR_EMPTYSPACE : encUnitNoKey;
+      registerParameter(&luaEncryption, [](propertiesCommon *item, uint8_t arg) {
+        bool wantOn = arg != 0;
+        if (!OtaEncryptionSetMode(wantOn))
+        {
+          // No key loaded - revert UI state.
+          luaEncryption.value = 0;
+          luaEncryption.units = encUnitNoKey;
+        }
+      });
+#endif
     }
 
     // POWER folder
