@@ -34,7 +34,7 @@ typedef struct {
             newTlmRatio:3,
             geminiMode:1,
             otaProtocol:2,
-            free:1;
+            cryptoMode:1; // 1 = TX broadcasts encrypted data/RC packets; RX must enable to decrypt
     uint8_t UID4;
     uint8_t UID5;
 } PACKED OTA_Sync_s;

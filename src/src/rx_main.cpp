@@ -28,6 +28,10 @@
 #include "rx-serial/SerialDisplayport.h"
 #include "rx-serial/SerialGPS.h"
 
+#if defined(PLATFORM_ESP32)
+#include "encryption.h"
+#endif
+
 #include "devAnalogVbat.h"
 #include "devBaro.h"
 #include "devButton.h"
@@ -1052,6 +1056,18 @@ static bool ICACHE_RAM_ATTR ProcessRfPacket_SYNC(uint32_t const now, OTA_Sync_s 
     ExpressLRS_nextAirRateIndex = proposedRateIdx;
     updateSwitchModePendingFromOta(otaSync->switchEncMode);
 
+#if defined(PLATFORM_ESP32)
+    // RX follows TX's encryption mode. Both sides derived the same key from the same bind phrase,
+    // so flipping the runtime flag is safe. Only auto-enable when we actually have a key loaded.
+    {
+        bool wantCrypto = (otaSync->cryptoMode != 0) && OtaEncryptionKeyIsReady();
+        if (OtaEncryptionEnabled != wantCrypto)
+        {
+            OtaEncryptionEnabled = wantCrypto;
+        }
+    }
+#endif
+
     // Update TLM ratio, should never be TLM_RATIO_STD/DISARMED, the TX calculates the correct value for the RX
     expresslrs_tlm_ratio_e TLMrateIn = (expresslrs_tlm_ratio_e)(otaSync->newTlmRatio + (uint8_t)TLM_RATIO_NO_TLM);
     uint8_t TlmDenom = TLMratioEnumToValue(TLMrateIn);
@@ -1107,6 +1123,11 @@ bool ICACHE_RAM_ATTR ProcessRFPacket(SX12xxDriverCommon::rx_status const status)
         #endif
         return false;
     }
+
+#if defined(PLATFORM_ESP32)
+    ///// CRC OK on ciphertext, now decrypt body in-place (no-op when disabled) /////
+    OtaCryptBody(otaPktPtr);
+#endif
 
     // The extEvent defines where TOCK timer ISR is to be synced to, i.e. where the packet period begins.
     // For rates where the TOA is longer than half the packet period schedule the TOCK for rougly 1x TOA before
@@ -1508,6 +1529,10 @@ static void setupConfigAndPocCheck()
     eeprom.Begin();
     config.SetStorageProvider(&eeprom); // Pass pointer to the Config class for access to storage
     config.Load();
+
+#if defined(PLATFORM_ESP32)
+    OtaEncryptionLoadFromStorage();
+#endif
 
     // If bound, track number of plug/unplug cycles to go to binding mode in eeprom
     if (config.GetIsBound() && config.GetPowerOnCounter() < 3)
