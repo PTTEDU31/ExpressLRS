@@ -1837,14 +1837,14 @@ static void debugRcvrLinkstats()
         // fire right after packet reception (a little before tock)
         int32_t pfd = PfdPrevRawOffset;
 
-        // Use serial instead of DBG() because do not necessarily want all the debug in our logs
+        // Use the logging stream directly because this CSV output does not need DBG formatting.
         char buf[50];
         snprintf(buf, sizeof(buf), "%u,%u,-%u,%u,%d,%u,%u,%d\r\n",
             packetCounter, ls.active_antenna,
             ls.active_antenna ? ls.uplink_RSSI_2 : ls.uplink_RSSI_1,
             ls.uplink_Link_quality, ls.uplink_SNR,
             ls.uplink_TX_Power, fhss, pfd);
-        Serial.write(buf);
+        LOGGING_UART.write(buf);
     }
 #endif
 }

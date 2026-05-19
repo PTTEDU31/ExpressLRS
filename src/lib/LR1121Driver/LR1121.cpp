@@ -154,6 +154,15 @@ transitioning from FS mode and the other from Standby mode. This causes the tx d
     CalImagebuf[1] = 1 + ((maximumFrequency / 1000000 ) + 1) / 4;   // Freq2 = ceil( (fmax_mhz + 1)/4)
     hal.WriteCommand(LR11XX_SYSTEM_CALIBRATE_IMAGE_OC, CalImagebuf, sizeof(CalImagebuf), SX12XX_Radio_All);
 
+    // 6.3.2 SetTcxoMode
+    uint8_t tcxobuf[4];
+    tcxobuf[0] = LR11XX_RADIO_TCXO_SUPPLY_VOLTAGE_3_3;
+    tcxobuf[1] = 0;
+    tcxobuf[2] = 0;
+    tcxobuf[3] = 33; // 1ms delay max wait (30.52us steps).  No idea if this is a good delay :|
+    hal.WriteCommand(LR11XX_SYSTEM_SET_TCXO_MODE_OC, tcxobuf, sizeof(tcxobuf), SX12XX_Radio_All);
+    DBGLN("LR1121 SetTcxoMode");
+ 
     return true;
 }
 
@@ -843,7 +852,15 @@ int LR1121Driver::BeginUpdate(const SX12XX_Radio_Number_t radioNumber, const uin
     lr1121UpdateState->updatingRadio = radioNumber;
     lr1121UpdateState->totalSize = 0;
     lr1121UpdateState->left_over = 0;
-
+        // 6.3.2 SetTcxoMode
+    uint8_t tcxobuf[4];
+    tcxobuf[0] = LR11XX_RADIO_TCXO_SUPPLY_VOLTAGE_3_3;
+    tcxobuf[1] = 0;
+    tcxobuf[2] = 0;
+    tcxobuf[3] = 33; // 1ms delay max wait (30.52us steps).  No idea if this is a good delay :|
+    hal.WriteCommand(LR11XX_SYSTEM_SET_TCXO_MODE_OC, tcxobuf, sizeof(tcxobuf), SX12XX_Radio_All);
+    DBGLN("LR1121 SetTcxoMode");
+ 
     // Reboot to BL mode
     DBGLN("Reboot 1121 to bootloader mode");
     uint8_t mode = 3;
@@ -853,6 +870,14 @@ int LR1121Driver::BeginUpdate(const SX12XX_Radio_Number_t radioNumber, const uin
         DBGLN("Waiting...");
         delay(10);
     }
+        // 6.3.2 SetTcxoMode
+    tcxobuf[0] = LR11XX_RADIO_TCXO_SUPPLY_VOLTAGE_3_3;
+    tcxobuf[1] = 0;
+    tcxobuf[2] = 0;
+    tcxobuf[3] = 33; // 1ms delay max wait (30.52us steps).  No idea if this is a good delay :|
+    hal.WriteCommand(LR11XX_SYSTEM_SET_TCXO_MODE_OC, tcxobuf, sizeof(tcxobuf), SX12XX_Radio_All);
+    DBGLN("LR1121 SetTcxoMode");
+ 
 
     // Ensure we're in BL mode
     DBGLN("Ensure BL mode");

@@ -11,7 +11,7 @@
 ### BINDING PHRASE: ###
 # Uncomment the line below to use a hardcoded binding phrase
 # Leave commented to use traditional binding
-#-DMY_BINDING_PHRASE="default ExpressLRS binding phrase"
+-DMY_BINDING_PHRASE="tung3108"
 
 
 ### REGULATORY DOMAIN: ###
@@ -27,10 +27,10 @@
 #-DRegulatory_Domain_FCC_915
 #-DRegulatory_Domain_ISM_2400
 #-DRegulatory_Domain_EU_CE_2400
-
+-DRegulatory_Domain_FCC_915
 ### PERFORMANCE OPTIONS: ###
 
--DLOCK_ON_FIRST_CONNECTION
+#-DLOCK_ON_FIRST_CONNECTION
 
 # For TX devices with fans, FAN_MIN_RUNTIME keeps the fan running even after the power level has
 # dropped below the configured Fan Threshold. This prevents the fan from turning on and off every
@@ -49,7 +49,7 @@
 
 ### OTHER OPTIONS: ###
 
--DAUTO_WIFI_ON_INTERVAL=60
+-DAUTO_WIFI_ON_INTERVAL=10
 #-DHOME_WIFI_SSID=""
 #-DHOME_WIFI_PASSWORD=""
 
@@ -58,14 +58,16 @@
 
 # Turn on debug messages, if disabled then all debugging options (starting with DEBUG_) are disabled
 #-DDEBUG_LOG
+-DDEBUG_LOG
 
 # For an ESP32S3 MCU, there are two options:
 # 1 - Pull-up on GPIO3, USB for JTAG (on MI_02), debug logging uses main UART.
 # 2 - Pull-down on GPIO3, Individual pins for JTAG (MTDI/MTMS/MTCK/MTDO), debug logging via USB for CDC UART (on MI_00)
 #-DESP32_S3_USB_JTAG_ENABLED
-
 # Use DEBUG_LOG_VERBOSE instead (or both) to see verbose debug logging (spammy stuff)
 #-DDEBUG_LOG_VERBOSE
+-DDEBUG_LOG_VERBOSE
+
 
 # Print a letter for each packet received or missed (RX debugging)
 #-DDEBUG_RX_SCOREBOARD
@@ -82,7 +84,7 @@
 # channels packet. Writes directly to Serial, does not require DEBUG_LOG.
 # Flash both TX & RX with this enabled to use it if the ID is required.
 #-DDEBUG_RCVR_LINKSTATS
-
+-DDEBUG_RCVR_LINKSTATS
 # This debug option reports dual radio RSSI&SNR, which is useful for validating a TD receiver
 #-DDEBUG_RCVR_SIGNAL_STATS
 
@@ -90,10 +92,9 @@
 # on Team2.4 for the additional time needed to include the packet header / enable FreqCorrection
 # Dynamic power must be off, else it will adjust based on the FreqCorrection reported in SNR
 #-DDEBUG_FREQ_CORRECTION
-
+-DDEBUG_FREQ_CORRECTION
 # Enable reporting offsets sent to Open/EdgeTX for packet synchronisation.
 # Also logs forced resyncs when a packet is delayed or missed.
 #-DDEBUG_OPENTX_SYNC
-
 # Use an ELRS TX and RX as a transparent UART over the air
 #-DUSE_AIRPORT_AT_BAUD=9600
