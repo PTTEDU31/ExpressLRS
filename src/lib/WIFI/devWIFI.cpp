@@ -27,6 +27,7 @@
 #include <ESPAsyncWebServer.h>
 
 #include "common.h"
+#include "rxtx_intf.h"
 #include "POWERMGNT.h"
 #include "FHSS.h"
 #include "hwTimer.h"
@@ -51,8 +52,6 @@
 
 extern void setButtonColors(uint8_t b1, uint8_t b2);
 #endif
-
-extern unsigned long rebootTime;
 
 static char station_ssid[33];
 static char station_password[65];
@@ -203,7 +202,7 @@ static void HandleReboot(AsyncWebServerRequest *request)
   AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "Kill -9, no more CPU time!");
   response->addHeader("Connection", "close");
   request->send(response);
-  rebootTime = millis() + 100;
+  scheduleRebootTime(200);
 }
 
 static void HandleReset(AsyncWebServerRequest *request)
@@ -228,7 +227,7 @@ static void HandleReset(AsyncWebServerRequest *request)
   AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "Reset complete, rebooting...");
   response->addHeader("Connection", "close");
   request->send(response);
-  rebootTime = millis() + 100;
+  scheduleRebootTime(100);
 }
 
 static void UpdateSettings(AsyncWebServerRequest *request, JsonVariant &json)
@@ -388,8 +387,6 @@ static void GetConfiguration(AsyncWebServerRequest *request)
       const auto channel = cfg["pwm"][ch].to<JsonObject>();
       channel["config"] = config.GetPwmChannel(ch)->raw;
       channel["pin"] = GPIO_PIN_PWM_OUTPUTS[ch];
-      channel["limits"]["min"] = config.GetPwmChannelLimits(ch)->val.min;
-      channel["limits"]["max"] = config.GetPwmChannelLimits(ch)->val.max;
       uint8_t features = 0;
       auto pin = GPIO_PIN_PWM_OUTPUTS[ch];
       if (pin == U0TXD_GPIO_NUM) features |= 1;  // SerialTX supported
@@ -593,13 +590,6 @@ static void UpdateConfiguration(AsyncWebServerRequest *request, JsonVariant &jso
     config.SetPwmChannelRaw(channel, val);
   }
 
-  JsonArray limits = json["limits"].as<JsonArray>();
-  for(uint32_t channel = 0 ; channel < limits.size() ; channel++)
-  {
-    uint32_t val = limits[channel];
-    config.SetPwmChannelLimitsRaw(channel, val);
-  }
-
   config.Commit();
   request->send(200, "text/plain", "Configuration updated");
 }
@@ -737,7 +727,7 @@ static void WebUploadResponseHandler(AsyncWebServerRequest *request) {
       #else
         msg += "Please wait for a few seconds while the device reboots.\"}";
       #endif
-      rebootTime = millis() + 200;
+      scheduleRebootTime(200);
     } else {
       StreamString p = StreamString();
       if (Update.hasError()) {
